@@ -8,9 +8,9 @@
 import SwiftUI
 
 struct DevicesList: View {
-    let devices: [DeviceData]
+    @Binding var devices: [DeviceData]
     let onSelect: (DeviceData) -> Void // Callback for item selection
-
+    let onRefresh: () -> Void // Callback for refresh
     var body: some View {
         List(devices) { device in
             Button {
@@ -20,6 +20,8 @@ struct DevicesList: View {
                     AssignmentText(text: device.name)
                 }
             }
+        }.refreshable {
+            onRefresh()
         }
     }
 }

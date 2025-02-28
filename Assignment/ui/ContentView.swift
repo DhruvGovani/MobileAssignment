@@ -8,36 +8,67 @@
 import SwiftUI
 
 struct ContentView: View {
-    private var viewModel = ContentViewModel()
+    @StateObject private var viewModel = ContentViewModel()
     @State private var path: [DeviceData] = [] // Navigation path
-
+    
+    // Serach Field View
+    var searchField: some View{
+        TextField(text: $viewModel.searchText) {
+            Text("Search Devices")
+                .opacity(0.5)
+            
+        }.frame(height: 45)
+            .padding(.horizontal, 30)
+            .background {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.gray.opacity(0.1))
+                    .padding(.horizontal, 20)
+            }
+    }
+    
+    // Empty Message View
+    @ViewBuilder func getEmptyDataMessage(_ msg: String) -> some View{
+        VStack{
+            Text(msg)
+        }.frame(maxHeight: .infinity)
+    }
+    
+    // Main Body View
     var body: some View {
         NavigationStack(path: $path) {
             Group {
-                if let computers = viewModel.data, !computers.isEmpty {
-                    DevicesList(devices: computers) { selectedComputer in
-                        viewModel.navigateToDetail(navigateDetail: selectedComputer)
+                if viewModel.deviceData.count > 0 && viewModel.errorMessage == nil {
+                    VStack{
+                        searchField
+                        if viewModel.deviceData.count > 0 {
+                            DevicesList(devices: $viewModel.deviceData, onSelect : { selectedComputer in
+                                path.append(selectedComputer)
+                            }, onRefresh :{
+                                viewModel.fetchDeviceData(true)
+                            })
+                        } else {
+                            getEmptyDataMessage("No Data Available")
+                        }
                     }
                 } else {
-                    ProgressView("Loading...")
+                    if let errMsg = viewModel.errorMessage{
+                        getEmptyDataMessage(errMsg)
+                    } else {
+                        ProgressView("Loading...")
+                    }
                 }
             }
-            .onChange(of: viewModel.navigateDetail, {
-                let navigate = viewModel.navigateDetail
-                path.append(navigate!)
-            })
             .navigationTitle("Devices")
             .navigationDestination(for: DeviceData.self) { computer in
                 DetailView(device: computer)
             }
             .onAppear {
-                let navigate = viewModel.navigateDetail
-                if (navigate != nil) {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        path.append(navigate!)
-                    }
-                }
+                viewModel.fetchDeviceData()
             }
         }
     }
+}
+
+#Preview {
+    ContentView()
 }
